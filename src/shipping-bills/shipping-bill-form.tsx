@@ -24,7 +24,6 @@ import { Popover, PopoverContent, PopoverTrigger } from 'ui/interactive/popover'
 import { PopoverContext } from 'ui/interactive/popover-context'
 import { Tabs, TabsList, TabsTrigger } from 'ui/interactive/tabs'
 import { clsx, getContext } from 'ui/utils'
-import { getDemoData, useDemoData } from './demo-store'
 import { billService, billsQueryKey, partyService, referenceDataService, ServiceError } from './services'
 import { MarksAndNumbersOption } from './marks-and-numbers-source'
 import {
@@ -369,7 +368,6 @@ function PartyFields({
   branchName,
   label,
   kind,
-  parties,
   required = true,
   onAddBranch,
   onQuickAdd
@@ -384,19 +382,22 @@ function PartyFields({
   branchName: BranchPath
   label: string
   kind: 'exporter' | 'business'
-  parties: (Exporter | Business)[]
   required?: boolean
   onAddBranch: (ownerId: number) => void
   onQuickAdd: () => void
 }) {
   const ownerId = formCtx.hooks.watch(ownerName)
-  const { exporters, businesses } = getDemoData()
-  const owner =
-    kind === 'exporter'
-      ? (exporters.find((party) => String(party.id) === ownerId) ??
-        parties.find((party) => String(party.id) === ownerId))
-      : (businesses.find((party) => String(party.id) === ownerId) ??
-        parties.find((party) => String(party.id) === ownerId))
+  const { data: ownerData } = useQuery({
+    queryKey: ['party', kind, String(ownerId)],
+    queryFn: async () =>
+      (kind === 'exporter'
+        ? await partyService.getExporter(String(ownerId))
+        : await partyService.getBusiness(String(ownerId))) ?? null,
+    enabled: Boolean(ownerId),
+    staleTime: 0,
+    retry: false
+  })
+  const owner = ownerData ?? undefined
 
   useEffect(() => {
     const selectedBranch = formCtx.hooks.getValues(branchName)
@@ -464,8 +465,8 @@ function PartyFields({
         </div>
         <AsyncPartySelect
           name={branchName}
-          placeholder={owner ? 'Search & select branch...' : `Choose ${kind} first`}
-          disabled={!owner}
+          placeholder={ownerId ? 'Search & select branch...' : `Choose ${kind} first`}
+          disabled={!ownerId}
           rules={{ required: required || !!ownerId }}
           deps={[ownerId]}
           fetchOptions={async (query) => {
@@ -487,7 +488,12 @@ function PartyFields({
             }
           }}
           getInitialLabel={async (id) => {
-            const branch = owner?.branches.find((b) => String(b.id) === id)
+            if (!ownerId) return ''
+            const branches =
+              kind === 'exporter'
+                ? await partyService.searchExporterBranches(String(ownerId), '')
+                : await partyService.searchBusinessBranches(String(ownerId), '')
+            const branch = branches.find((b) => String(b.id) === id)
             return branch ? `${branch.branchName} · ${branch.city}` : ''
           }}
         />
@@ -500,7 +506,6 @@ function InvoiceEditor({
   formCtx,
   index,
   invoice,
-  businesses,
   onQuickAdd,
   onAddBranch,
   onRemove,
@@ -509,7 +514,6 @@ function InvoiceEditor({
   formCtx: BillFormContext
   index: number
   invoice: BillInvoiceForm
-  businesses: Business[]
   onQuickAdd: (role: 'buyer' | 'thirdParty' | 'itemThirdParty', invoiceIndex: number, itemIndex?: number) => void
   onAddBranch: (ownerId: number, branchName: BranchPath) => void
   onRemove: () => void
@@ -523,10 +527,6 @@ function InvoiceEditor({
     remove: removeItem
   } = useFieldArray({ control, name: `invoices.${index}.items` })
   const buyerSame = formCtx.hooks.watch(`invoices.${index}.buyerSameAsConsignee`)
-  const buyerOptions = businesses.filter((business) => business.isBuyer || business.id === Number(invoice.buyerId))
-  const thirdPartyOptions = businesses.filter(
-    (business) => business.isThirdParty || business.id === Number(invoice.thirdPartyId)
-  )
 
   return (
     <Card className="mb-4">
@@ -581,7 +581,6 @@ function InvoiceEditor({
             branchName={`invoices.${index}.buyerBranchId`}
             label="Buyer"
             kind="business"
-            parties={buyerOptions}
             onQuickAdd={() => onQuickAdd('buyer', index)}
             onAddBranch={(ownerId) => onAddBranch(ownerId, `invoices.${index}.buyerBranchId`)}
           />
@@ -768,7 +767,6 @@ function InvoiceEditor({
             branchName={`invoices.${index}.thirdPartyBranchId`}
             label="Third party (optional)"
             kind="business"
-            parties={thirdPartyOptions}
             required={false}
             onQuickAdd={() => onQuickAdd('thirdParty', index)}
             onAddBranch={(ownerId) => onAddBranch(ownerId, `invoices.${index}.thirdPartyBranchId`)}
@@ -897,9 +895,6 @@ function InvoiceEditor({
                         branchName={`invoices.${index}.items.${itemIndex}.itemThirdPartyBranchId`}
                         label="Item third party"
                         kind="business"
-                        parties={businesses.filter(
-                          (business) => business.isThirdParty || business.id === Number(item.itemThirdPartyId)
-                        )}
                         onQuickAdd={() => onQuickAdd('itemThirdParty', index, itemIndex)}
                         onAddBranch={(ownerId) =>
                           onAddBranch(ownerId, `invoices.${index}.items.${itemIndex}.itemThirdPartyBranchId`)
@@ -1131,7 +1126,6 @@ function DocumentItem({ formCtx, index, onRemove }: { formCtx: BillFormContext; 
 }
 
 function BillEditor({ bill }: { bill?: SavedBill }) {
-  const { exporters, businesses } = useDemoData()
   const formCtx = useForm<ShippingBillFormValues>(billSchema, { defaultValues: bill?.values ?? emptyBill() })
   const { register, control, setValue, formState } = formCtx.hooks
   const values = formCtx.hooks.watch()
@@ -1159,9 +1153,6 @@ function BillEditor({ bill }: { bill?: SavedBill }) {
   const [marksAndNumbersOptions, setMarksAndNumbersOptions] = useState<MarksAndNumbersOption[]>([])
   const [marksAndNumbersLoading, setMarksAndNumbersLoading] = useState(false)
   const previousExporterId = useRef(values.exporterId)
-  const consigneeOptions = businesses.filter(
-    (business) => business.isConsignee || String(business.id) === values.consigneeId
-  )
 
   useEffect(() => {
     const exporterId = values.exporterId
@@ -1269,8 +1260,6 @@ function BillEditor({ bill }: { bill?: SavedBill }) {
     }
   }
 
-  const exporter = exporters.find((item) => String(item.id) === values.exporterId)
-  const consignee = businesses.find((item) => String(item.id) === values.consigneeId)
   const totalLines = values.invoices.reduce((sum, invoice) => sum + invoice.items.length, 0)
 
   return (
@@ -1325,7 +1314,6 @@ function BillEditor({ bill }: { bill?: SavedBill }) {
                   branchName="exporterBranchId"
                   label="Exporter"
                   kind="exporter"
-                  parties={exporters.filter((item) => !item.disabled || String(item.id) === values.exporterId)}
                   onQuickAdd={() => setQuickAdd({ kind: 'exporter' })}
                   onAddBranch={(ownerId) =>
                     setQuickBranch({ kind: 'exporter', ownerId, branchName: 'exporterBranchId' })
@@ -1337,7 +1325,6 @@ function BillEditor({ bill }: { bill?: SavedBill }) {
                   branchName="consigneeBranchId"
                   label="Consignee"
                   kind="business"
-                  parties={consigneeOptions}
                   onQuickAdd={() => setQuickAdd({ kind: 'business', role: 'consignee' })}
                   onAddBranch={(ownerId) =>
                     setQuickBranch({ kind: 'business', ownerId, branchName: 'consigneeBranchId' })
@@ -1489,7 +1476,6 @@ function BillEditor({ bill }: { bill?: SavedBill }) {
                 formCtx={formCtx}
                 index={index}
                 invoice={values.invoices[index] ?? emptyInvoice()}
-                businesses={businesses}
                 onQuickAdd={(role, invoiceIndex, itemIndex) =>
                   setQuickAdd({ kind: 'business', role, invoiceIndex, itemIndex })
                 }
@@ -1746,7 +1732,10 @@ function BillEditor({ bill }: { bill?: SavedBill }) {
           kind={quickBranch.kind}
           ownerId={quickBranch.ownerId}
           onClose={() => setQuickBranch(null)}
-          onSaved={(branch: Branch) => setValue(quickBranch.branchName, String(branch.id), { shouldValidate: true })}
+          onSaved={async (branch: Branch) => {
+            await queryClient.invalidateQueries({ queryKey: ['party'] })
+            setValue(quickBranch.branchName, String(branch.id), { shouldValidate: true })
+          }}
         />
       )}
     </div>

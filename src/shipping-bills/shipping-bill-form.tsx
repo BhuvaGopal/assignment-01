@@ -8,6 +8,7 @@ import { BranchDialog, PartyDialog } from './party-dialogs'
 import { routes } from '@/shared/route-paths'
 import { s, useFieldArray, useForm } from 'core/form'
 import { Form, SubmitButton } from 'core/form/components'
+import { queryClient, useQuery } from 'core/react-query'
 import { navigate, useParams } from 'core/routing'
 import { toast } from 'core/toast-manager'
 import { RrCaretDown } from 'icons/rr/fi-rr-caret-down'
@@ -23,9 +24,9 @@ import { Popover, PopoverContent, PopoverTrigger } from 'ui/interactive/popover'
 import { PopoverContext } from 'ui/interactive/popover-context'
 import { Tabs, TabsList, TabsTrigger } from 'ui/interactive/tabs'
 import { clsx, getContext } from 'ui/utils'
-import { getDemoData, saveBill, useDemoData } from './demo-store'
-import { shippingBillService } from './shipping-bill-service'
-import { getMarksAndNumbersOptions, MarksAndNumbersOption } from './marks-and-numbers-source'
+import { getDemoData, useDemoData } from './demo-store'
+import { billService, billsQueryKey, partyService, referenceDataService, ServiceError } from './services'
+import { MarksAndNumbersOption } from './marks-and-numbers-source'
 import {
   BillInvoiceForm,
   Branch,
@@ -42,7 +43,6 @@ import {
   SavedBill,
   ShippingBillFormValues
 } from './model'
-import { partyMockService } from './party-mock-service'
 import { workflowSteps } from './workflow'
 
 const positive = s.string().refine((value) => (Number(value) > 0 ? undefined : 'Enter a number above zero'))
@@ -211,6 +211,7 @@ function AsyncPartySelect({
   const [loading, setLoading] = useState(false)
   const [selectedLabel, setSelectedLabel] = useState('')
   const [isOpen, setIsOpen] = useState(false)
+  const [loadError, setLoadError] = useState(false)
 
   const fetchOptionsRef = useRef(fetchOptions)
   fetchOptionsRef.current = fetchOptions
@@ -244,6 +245,7 @@ function AsyncPartySelect({
 
     let active = true
     setLoading(true)
+    setLoadError(false)
     const timer = setTimeout(() => {
       void fetchOptionsRef
         .current(query)
@@ -255,6 +257,7 @@ function AsyncPartySelect({
         })
         .catch(() => {
           if (active) {
+            setLoadError(true)
             setOptions([])
             setLoading(false)
           }
@@ -302,7 +305,9 @@ function AsyncPartySelect({
           </div>
           <div className="max-h-56 overflow-y-auto p-1">
             {loading ? (
-              <div className="p-3 text-center text-xs text-gray-500">Searching mock service...</div>
+              <div className="p-3 text-center text-xs text-gray-500">Searching...</div>
+            ) : loadError ? (
+              <div className="p-3 text-center text-xs text-red-600">Could not load options. Close and reopen to retry.</div>
             ) : options.length === 0 ? (
               <div className="p-3 text-center text-xs text-gray-400">No matching results found</div>
             ) : (
@@ -420,14 +425,14 @@ function PartyFields({
           rules={{ required }}
           fetchOptions={async (query) => {
             if (kind === 'exporter') {
-              const res = await partyMockService.searchExporters(query)
+              const res = await partyService.searchExporters(query)
               return res.map((item) => ({
                 value: String(item.id),
                 label: item.name,
                 sublabel: item.iec ? `IEC: ${item.iec}` : undefined
               }))
             } else {
-              const res = await partyMockService.searchConsignees(query)
+              const res = await partyService.searchConsignees(query)
               return res.map((item) => ({
                 value: String(item.id),
                 label: item.name
@@ -436,10 +441,10 @@ function PartyFields({
           }}
           getInitialLabel={async (id) => {
             if (kind === 'exporter') {
-              const item = await partyMockService.getExporterById(id)
+              const item = await partyService.getExporter(id)
               return item ? item.name : ''
             } else {
-              const item = await partyMockService.getConsigneeById(id)
+              const item = await partyService.getBusiness(id)
               return item ? item.name : ''
             }
           }}
@@ -466,14 +471,14 @@ function PartyFields({
           fetchOptions={async (query) => {
             if (!ownerId) return []
             if (kind === 'exporter') {
-              const res = await partyMockService.searchExporterBranches(ownerId, query)
+              const res = await partyService.searchExporterBranches(ownerId, query)
               return res.map((branch) => ({
                 value: String(branch.id),
                 label: `${branch.branchName} · ${branch.city}`,
                 sublabel: branch.address1
               }))
             } else {
-              const res = await partyMockService.searchConsigneeBranches(ownerId, query)
+              const res = await partyService.searchBusinessBranches(ownerId, query)
               return res.map((branch) => ({
                 value: String(branch.id),
                 label: `${branch.branchName} · ${branch.city}`,
@@ -908,7 +913,7 @@ function InvoiceEditor({
                         label="Unit of rate"
                         {...register(`invoices.${index}.items.${itemIndex}.unitOfRate`)}
                         options={quantityCodes}
-                        placeholder={invoice.items[index].unitOfMeasurement}
+                        placeholder={invoice.items[itemIndex].unitOfMeasurement}
                       />
                       <Input
                         label="Per Unit (Rate)"
@@ -1169,7 +1174,7 @@ function BillEditor({ bill }: { bill?: SavedBill }) {
     setMarksAndNumbersOptions([])
     setMarksAndNumbersLoading(Boolean(exporterId))
     if (exporterId) {
-      void getMarksAndNumbersOptions(exporterId)
+      void referenceDataService.getMarksAndNumbers(exporterId)
         .then((options) => {
           if (cancelled) return
           setMarksAndNumbersOptions(options)
@@ -1216,23 +1221,26 @@ function BillEditor({ bill }: { bill?: SavedBill }) {
 
   async function handleSave(data: ShippingBillFormValues) {
     try {
-      const saved = saveBill(data, draftId)
+      const saved = await billService.save(data, draftId)
       setDraftId(saved.id)
-      console.log('Shipping bill save payload', saved.payload)
-
-      // Submit payload to backend API (POST /api/shipping-bills from shipping_bill.http)
-      try {
-        const apiResult = await shippingBillService.upsert(data)
-        console.log('API response from POST /api/shipping-bills:', apiResult)
-      } catch (apiErr) {
-        console.log('Backend API sync notice (saved locally):', apiErr)
-      }
-
+      await queryClient.invalidateQueries({ queryKey: billsQueryKey })
       toast.success(bill ? 'Shipping bill updated' : 'Shipping bill created')
       navigate(routes.toShippingBillEdit(saved.id))
-    } catch (err: any) {
-      console.error('Error saving shipping bill:', err)
-      toast.error('Failed to save shipping bill')
+    } catch (err) {
+      toast.error(err instanceof ServiceError ? err.message : 'Failed to save shipping bill')
+    }
+  }
+
+  // Saves the in-progress bill without validation. Returns false (and tells the user) on failure.
+  async function saveDraft() {
+    try {
+      const saved = await billService.saveDraft(formCtx.hooks.getValues(), draftId)
+      setDraftId(saved.id)
+      void queryClient.invalidateQueries({ queryKey: billsQueryKey })
+      return true
+    } catch (err) {
+      toast.error(err instanceof ServiceError ? err.message : 'Could not save draft')
+      return false
     }
   }
 
@@ -1346,7 +1354,7 @@ function BillEditor({ bill }: { bill?: SavedBill }) {
                         placeholder="Select Indian port"
                         rules={{ required: true }}
                         fetchOptions={async (query) => {
-                          const res = await partyMockService.searchLoadingPorts(query)
+                          const res = await referenceDataService.searchLoadingPorts(query)
                           return res.map((port) => ({
                             value: port.code,
                             label: `${port.name} · ${port.code}`,
@@ -1354,7 +1362,7 @@ function BillEditor({ bill }: { bill?: SavedBill }) {
                           }))
                         }}
                         getInitialLabel={async (code) => {
-                          const port = await partyMockService.getPortByCode(code)
+                          const port = await referenceDataService.getPort(code)
                           return port ? `${port.name} · ${port.code}` : code
                         }}
                       />
@@ -1366,7 +1374,7 @@ function BillEditor({ bill }: { bill?: SavedBill }) {
                         placeholder="Select destination"
                         rules={{ required: true }}
                         fetchOptions={async (query) => {
-                          const res = await partyMockService.searchDestinationPorts(query)
+                          const res = await referenceDataService.searchDestinationPorts(query)
                           return res.map((port) => ({
                             value: port.code,
                             label: `${port.name} · ${port.code}`,
@@ -1374,7 +1382,7 @@ function BillEditor({ bill }: { bill?: SavedBill }) {
                           }))
                         }}
                         getInitialLabel={async (code) => {
-                          const port = await partyMockService.getPortByCode(code)
+                          const port = await referenceDataService.getPort(code)
                           return port ? `${port.name} · ${port.code}` : code
                         }}
                       />
@@ -1695,10 +1703,9 @@ function BillEditor({ bill }: { bill?: SavedBill }) {
                 variant="outline"
                 type="button"
                 onClick={() => {
-                  const current = formCtx.hooks.getValues()
-                  const saved = saveBill(current, draftId)
-                  setDraftId(saved.id)
-                  setActiveTab(activeTab === 'documents' ? 'invoices' : 'details')
+                  void saveDraft().then((ok) => {
+                    if (ok) setActiveTab(activeTab === 'documents' ? 'invoices' : 'details')
+                  })
                 }}>
                 Previous
               </Button>
@@ -1708,11 +1715,11 @@ function BillEditor({ bill }: { bill?: SavedBill }) {
                 type="button"
                 onClick={(e) => {
                   e.preventDefault()
-                  const current = formCtx.hooks.getValues()
-                  const saved = saveBill(current, draftId)
-                  setDraftId(saved.id)
-                  toast.success('Details saved')
-                  setActiveTab(activeTab === 'details' ? 'invoices' : 'documents')
+                  void saveDraft().then((ok) => {
+                    if (!ok) return
+                    toast.success('Details saved')
+                    setActiveTab(activeTab === 'details' ? 'invoices' : 'documents')
+                  })
                 }}>
                 Save & Next
               </Button>
@@ -1748,14 +1755,34 @@ function BillEditor({ bill }: { bill?: SavedBill }) {
 
 export default function ShippingBillPage() {
   const { id } = useParams<{ id?: string }>()
-  const { bills } = useDemoData()
-  const bill = id ? (bills.find((item) => item.id === Number(id)) || shippingBillService.getById(id)) : undefined
-  if (id && !bill)
+  const { data: bill, isLoading, error, refetch } = useQuery({
+    queryKey: ['bill', id],
+    queryFn: () => billService.getById(Number(id)),
+    enabled: Boolean(id),
+    staleTime: 0,
+    retry: false
+  })
+
+  if (!id) return <BillEditor key="new" />
+  if (isLoading) return <div className="p-10 text-center text-sm text-gray-500">Loading shipping bill...</div>
+  if (error || !bill) {
+    const notFound = error instanceof ServiceError && error.code === 'NOT_FOUND'
     return (
       <div className="space-y-3">
-        <h1 className="text-xl font-semibold">Shipping bill not found</h1>
-        <Button onClick={() => navigate(routes.dashboard)}>Back to list</Button>
+        <h1 className="text-xl font-semibold">
+          {notFound ? 'Shipping bill not found' : 'Could not load shipping bill'}
+        </h1>
+        {!notFound && <p className="text-sm text-gray-500">{error instanceof Error ? error.message : ''}</p>}
+        <div className="flex gap-2">
+          {!notFound && (
+            <Button variant="outline" onClick={() => void refetch()}>
+              Retry
+            </Button>
+          )}
+          <Button onClick={() => navigate(routes.dashboard)}>Back to list</Button>
+        </div>
       </div>
     )
-  return <BillEditor key={id ?? 'new'} bill={bill} />
+  }
+  return <BillEditor key={id} bill={bill} />
 }

@@ -1,7 +1,7 @@
 import { routes } from '@/shared/route-paths'
 import { downloadFlatFile } from '@/shipping-bills/flat-file'
 import { invoiceTotal, SavedBill } from '@/shipping-bills/model'
-import { billService, ServiceError } from '@/shipping-bills/services'
+import { billService, billsQueryKey, ServiceError } from '@/shipping-bills/services'
 import { useQuery } from 'core/react-query'
 import { navigate } from 'core/routing'
 import { toast } from 'core/toast-manager'
@@ -11,8 +11,6 @@ import { Button } from 'ui/basic/button'
 import { Card, CardContent } from 'ui/basic/card'
 import { Table } from 'ui/basic/table'
 import { Input } from 'ui/inputs/input'
-
-export const billsQueryKey = ['bills'] as const
 
 function formatDate(value?: string) {
   const date = value ? new Date(value) : undefined

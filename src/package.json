@@ -1,0 +1,10 @@
+{
+  "name": "app",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "core": "workspace:^",
+    "icons": "workspace:^",
+    "ui": "workspace:^"
+  }
+}

@@ -1,0 +1,3 @@
+[submodule "fe-zen-arch"]
+	path = fe-zen-arch
+	url = git@github.com:shivamkj/fe-zen-arch.git

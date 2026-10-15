@@ -42,6 +42,14 @@ import {
   SavedBill,
   ShippingBillFormValues
 } from './model'
+import {
+  destinationPortError,
+  invoiceDateError,
+  loadingPortError,
+  netWeightError,
+  packingRangeError,
+  rbiWaiverDateError
+} from './validation'
 import { workflowSteps } from './workflow'
 
 const positive = s.string().refine((value) => (Number(value) > 0 ? undefined : 'Enter a number above zero'))
@@ -54,18 +62,18 @@ const billSchema = s.object({
   exporterBranchId: s.string(),
   consigneeId: s.string(),
   consigneeBranchId: s.string(),
-  loadingPort: s.string(),
-  finalDestinationPort: s.string(),
+  loadingPort: s.string().refine((value) => loadingPortError(value)),
+  finalDestinationPort: s.string().refine((value, form) => destinationPortError(value, form?.loadingPort)),
   dischargePort: s.string().optional(),
   originStateCode: s.string().optional(),
   nfeiCategory: s.string().optional(),
   rbiWaiverNumber: s.string().optional(),
-  rbiWaiverDate: s.string().optional(),
+  rbiWaiverDate: s.string().optional().refine((value, form) => rbiWaiverDateError(value, form?.rbiWaiverNumber)),
   sealType: s.string().optional(),
   numberOfContainers: s.string().optional(),
   natureOfCargo: s.string().optional(),
   grossWeight: s.string().optional(),
-  netWeight: s.string().optional(),
+  netWeight: s.string().optional().refine((value, form) => netWeightError(value, form?.grossWeight)),
   measurementUnit: s.string().optional(),
   totalPackages: s.string().optional(),
   marksAndNumbers: s.string().optional(),
@@ -73,7 +81,7 @@ const billSchema = s.object({
   mawbNumber: s.string().optional(),
   hawbNumber: s.string().optional(),
   invoiceNumber: s.string(),
-  invoiceDate: s.string(),
+  invoiceDate: s.string().refine((value, form) => invoiceDateError(value, form?.jobDate)),
   currency: s.string(),
   invoiceTotal: s.string().refine((value) => (!value || Number(value) >= 0 ? undefined : 'Total cannot be negative')).optional(),
   contractType: s.string(),
@@ -81,12 +89,12 @@ const billSchema = s.object({
   buyerBranchId: s.string().optional(),
   thirdPartyId: s.string().optional(),
   thirdPartyBranchId: s.string().optional(),
-  ritcCode: s.string(),
+  ritcCode: s.string().matches(/^\d{8}$/, 'Enter an 8-digit RITC / HS code'),
   goodsDescription1: s.string(),
   quantity: positive,
   unitOfMeasurement: s.string(),
   unitPrice: positive,
-  containerNumber: s.string().optional(),
+  containerNumber: s.string().optional().matches(/^[A-Za-z]{4}\d{7}$/, 'Use 4 letters + 7 digits, e.g. MSKU1234567'),
   packingNumberFrom: s.string().optional(),
   packingNumberTo: s.string().optional(),
   documentTypeCode: s.string().optional(),
@@ -1195,7 +1203,9 @@ function BillEditor({ bill }: { bill?: SavedBill }) {
         'consigneeId',
         'consigneeBranchId',
         'loadingPort',
-        'finalDestinationPort'
+        'finalDestinationPort',
+        'netWeight',
+        'rbiWaiverDate'
       ].some((field) => field in formState.errors)
     )
       setActiveTab('details')
@@ -1570,7 +1580,9 @@ function BillEditor({ bill }: { bill?: SavedBill }) {
                           <Input
                             label="Package to"
                             type="number"
-                            {...register(`packingRanges.${index}.packingNumberTo`)}
+                            {...register(`packingRanges.${index}.packingNumberTo`, {
+              validate: (value, form) => packingRangeError(form.packingRanges[index]?.packingNumberFrom, value)
+            })}
                           />
                           <Input label="Packing code" {...register(`packingRanges.${index}.packingCode`)} />
                         </div>

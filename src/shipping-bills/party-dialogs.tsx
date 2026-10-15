@@ -1,4 +1,4 @@
-import { saveBranch, saveBusiness, saveExporter } from '@/shipping-bills/demo-store'
+import { partyService, ServiceError } from '@/shipping-bills/services'
 import { Branch, Business, countries, Exporter } from '@/shipping-bills/model'
 import { InferType, s, useForm } from 'core/form'
 import { Form, SubmitButton } from 'core/form/components'
@@ -71,7 +71,7 @@ export function PartyDialog({ kind, party, initialRole, onClose, onSaved }: Part
   })
   const { register } = formCtx.hooks
 
-  function handleSave(values: PartyFields) {
+  async function handleSave(values: PartyFields) {
     const firstBranch = isNew
       ? {
           branchName: values.branchName!,
@@ -82,34 +82,38 @@ export function PartyDialog({ kind, party, initialRole, onClose, onSaved }: Part
           countryCode: values.countryCode
         }
       : undefined
-    const saved =
-      kind === 'exporter'
-        ? saveExporter({
-            id: party?.id,
-            name: values.name.trim(),
-            iec: values.iec?.trim() ?? '',
-            class: values.class ?? 'F',
-            type: values.type ?? 'P',
-            pan: values.pan,
-            tan: values.tan,
-            aeoNumber: values.aeoNumber,
-            website: values.website,
-            notes: values.notes,
-            firstBranch
-          })
-        : saveBusiness({
-            id: party?.id,
-            name: values.name.trim(),
-            iec: values.iec,
-            isConsignee: !!values.isConsignee,
-            isBuyer: !!values.isBuyer,
-            isNotify: !!values.isNotify,
-            isThirdParty: !!values.isThirdParty,
-            firstBranch
-          })
-    toast.success(`${kind === 'exporter' ? 'Exporter' : 'Business'} saved`)
-    onSaved?.(saved)
-    onClose()
+    try {
+      const saved =
+        kind === 'exporter'
+          ? await partyService.createExporter({
+              id: party?.id,
+              name: values.name.trim(),
+              iec: values.iec?.trim() ?? '',
+              class: values.class ?? 'F',
+              type: values.type ?? 'P',
+              pan: values.pan,
+              tan: values.tan,
+              aeoNumber: values.aeoNumber,
+              website: values.website,
+              notes: values.notes,
+              firstBranch
+            })
+          : await partyService.createBusiness({
+              id: party?.id,
+              name: values.name.trim(),
+              iec: values.iec,
+              isConsignee: !!values.isConsignee,
+              isBuyer: !!values.isBuyer,
+              isNotify: !!values.isNotify,
+              isThirdParty: !!values.isThirdParty,
+              firstBranch
+            })
+      toast.success(`${kind === 'exporter' ? 'Exporter' : 'Business'} saved`)
+      onSaved?.(saved)
+      onClose()
+    } catch (err) {
+      toast.error(err instanceof ServiceError ? err.message : `Could not save ${kind}`)
+    }
   }
 
   return (
@@ -247,11 +251,15 @@ export function BranchDialog({ kind, ownerId, branch, onClose, onSaved }: Branch
   })
   const { register } = formCtx.hooks
 
-  function handleSave(values: BranchFields) {
-    const saved = saveBranch(kind, ownerId, { ...values, id: branch?.id })
-    toast.success('Branch saved')
-    onSaved?.(saved)
-    onClose()
+  async function handleSave(values: BranchFields) {
+    try {
+      const saved = await partyService.saveBranch(kind, ownerId, { ...values, id: branch?.id })
+      toast.success('Branch saved')
+      onSaved?.(saved)
+      onClose()
+    } catch (err) {
+      toast.error(err instanceof ServiceError ? err.message : 'Could not save branch')
+    }
   }
 
   return (

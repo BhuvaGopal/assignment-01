@@ -296,8 +296,7 @@ function AsyncPartySelect({
         <PopoverTrigger
           className={clsx(
             'outline-focus-select group flex w-full cursor-pointer items-center justify-between rounded border border-gray-200 pr-2 hover:border-gray-300 disabled:cursor-not-allowed disabled:opacity-50',
-            className || 'bg-white',
-            disabled && 'cursor-not-allowed opacity-50'
+            clsx(className || 'bg-white', disabled && 'cursor-not-allowed opacity-50')
           )}
           disabled={disabled}>
           <div className="flex items-center p-2 text-sm">
@@ -307,7 +306,7 @@ function AsyncPartySelect({
           </div>
           <RrCaretDown className="size-4 text-gray-400 transition-transform group-data-[state=open]:rotate-180" />
         </PopoverTrigger>
-        <InputError name={name} />
+        <InputError name={name as never} />
         <PopoverContent className="overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg">
           <div className="border-b border-gray-100 p-2">
             <input
@@ -1281,8 +1280,6 @@ function BillEditor({ bill }: { bill?: SavedBill }) {
       setValue(`invoices.${quickAdd.invoiceIndex}.${field}BranchId`, String(branchId), { shouldValidate: true })
     }
   }
-
-  const totalLines = values.invoices.reduce((sum, invoice) => sum + invoice.items.length, 0)
 
   return (
     <div className="space-y-5">

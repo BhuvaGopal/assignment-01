@@ -19,7 +19,13 @@ function formatDate(value?: string) {
 
 function matchesSearch(bill: SavedBill, search: string) {
   const { values } = bill
-  return [bill.id, values.jobNumber, values.exporterName, values.consigneeName, ...values.invoices.map((i) => i.invoiceNumber)]
+  return [
+    bill.id,
+    values.jobNumber,
+    values.exporterName,
+    values.consigneeName,
+    ...values.invoices.map((i) => i.invoiceNumber)
+  ]
     .join(' ')
     .toLowerCase()
     .includes(search.toLowerCase())
@@ -48,8 +54,7 @@ export default function ListDashboard() {
 
   const bills = data ?? []
   const filtered = bills.filter((bill) => matchesSearch(bill, search))
-  const countDistinct = (pick: (bill: SavedBill) => string | undefined) =>
-    new Set(bills.map(pick).filter(Boolean)).size
+  const countDistinct = (pick: (bill: SavedBill) => string | undefined) => new Set(bills.map(pick).filter(Boolean)).size
 
   function handleDownload(bill: SavedBill) {
     try {

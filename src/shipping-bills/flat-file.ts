@@ -32,7 +32,9 @@ export function generateFlatFileContent(bill: SavedBill): string {
       v.measurementUnit || 'KGS',
       v.totalPackages || '',
       clean(v.marksAndNumbers)
-    ].join('^').replace(/^/, '<R>')
+    ]
+      .join('^')
+      .replace(/^/, '<R>')
   )
 
   if (v.invoices.length > 0) {

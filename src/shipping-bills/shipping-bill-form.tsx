@@ -4,18 +4,17 @@ import schemeCodes from '@/data/scheme-codes'
 import { stateOptions } from '@/data/states'
 import { Trades } from '@/data/trade-agrements'
 import { cargoOptions, contractTypes, paymentTypes, priceInclusionTypes, sealTypes, weightUnits } from '@/data/types'
-import { BranchDialog, PartyDialog } from './party-dialogs'
 import { routes } from '@/shared/route-paths'
 import { s, useFieldArray, useForm } from 'core/form'
-import { Form, SubmitButton } from 'core/form/components'
+import { Form } from 'core/form/components'
 import { queryClient, useQuery } from 'core/react-query'
 import { navigate, useParams } from 'core/routing'
 import { toast } from 'core/toast-manager'
 import { RrCaretDown } from 'icons/rr/fi-rr-caret-down'
 import { useEffect, useRef, useState } from 'react'
-import { getFormContext, RegisterOptions, useController } from 'ui/form'
 import { Button } from 'ui/basic/button'
 import { Card, CardContent, CardHeader } from 'ui/basic/card'
+import { getFormContext, RegisterOptions, useController } from 'ui/form'
 import { Checkbox } from 'ui/inputs/checkbox'
 import { InputError } from 'ui/inputs/error'
 import { Input } from 'ui/inputs/input'
@@ -24,7 +23,6 @@ import { Popover, PopoverContent, PopoverTrigger } from 'ui/interactive/popover'
 import { PopoverContext } from 'ui/interactive/popover-context'
 import { Tabs, TabsList, TabsTrigger } from 'ui/interactive/tabs'
 import { clsx, getContext } from 'ui/utils'
-import { billService, billsQueryKey, partyService, referenceDataService, ServiceError } from './services'
 import { MarksAndNumbersOption } from './marks-and-numbers-source'
 import {
   BillInvoiceForm,
@@ -42,6 +40,8 @@ import {
   SavedBill,
   ShippingBillFormValues
 } from './model'
+import { BranchDialog, PartyDialog } from './party-dialogs'
+import { billService, billsQueryKey, partyService, referenceDataService, ServiceError } from './services'
 import {
   destinationPortError,
   invoiceDateError,
@@ -68,12 +68,18 @@ const billSchema = s.object({
   originStateCode: s.string().optional(),
   nfeiCategory: s.string().optional(),
   rbiWaiverNumber: s.string().optional(),
-  rbiWaiverDate: s.string().optional().refine((value, form) => rbiWaiverDateError(value, form?.rbiWaiverNumber)),
+  rbiWaiverDate: s
+    .string()
+    .optional()
+    .refine((value, form) => rbiWaiverDateError(value, form?.rbiWaiverNumber)),
   sealType: s.string().optional(),
   numberOfContainers: s.string().optional(),
   natureOfCargo: s.string().optional(),
   grossWeight: s.string().optional(),
-  netWeight: s.string().optional().refine((value, form) => netWeightError(value, form?.grossWeight)),
+  netWeight: s
+    .string()
+    .optional()
+    .refine((value, form) => netWeightError(value, form?.grossWeight)),
   measurementUnit: s.string().optional(),
   totalPackages: s.string().optional(),
   marksAndNumbers: s.string().optional(),
@@ -83,7 +89,10 @@ const billSchema = s.object({
   invoiceNumber: s.string(),
   invoiceDate: s.string().refine((value, form) => invoiceDateError(value, form?.jobDate)),
   currency: s.string(),
-  invoiceTotal: s.string().refine((value) => (!value || Number(value) >= 0 ? undefined : 'Total cannot be negative')).optional(),
+  invoiceTotal: s
+    .string()
+    .refine((value) => (!value || Number(value) >= 0 ? undefined : 'Total cannot be negative'))
+    .optional(),
   contractType: s.string(),
   buyerId: s.string().optional(),
   buyerBranchId: s.string().optional(),
@@ -94,7 +103,10 @@ const billSchema = s.object({
   quantity: positive,
   unitOfMeasurement: s.string(),
   unitPrice: positive,
-  containerNumber: s.string().optional().matches(/^[A-Za-z]{4}\d{7}$/, 'Use 4 letters + 7 digits, e.g. MSKU1234567'),
+  containerNumber: s
+    .string()
+    .optional()
+    .matches(/^[A-Za-z]{4}\d{7}$/, 'Use 4 letters + 7 digits, e.g. MSKU1234567'),
   packingNumberFrom: s.string().optional(),
   packingNumberTo: s.string().optional(),
   documentTypeCode: s.string().optional(),
@@ -280,10 +292,7 @@ function AsyncPartySelect({
   return (
     <div>
       <input type="hidden" name={name} value={value ?? ''} ref={ref} disabled={disabled} />
-      <Popover
-        placement="bottom-start"
-        fallbackPlacements={['top-start']}
-        onOpenCallback={(open) => setIsOpen(open)}>
+      <Popover placement="bottom-start" fallbackPlacements={['top-start']} onOpenCallback={(open) => setIsOpen(open)}>
         <PopoverTrigger
           className={clsx(
             'outline-focus-select group flex w-full cursor-pointer items-center justify-between rounded border border-gray-200 pr-2 hover:border-gray-300 disabled:cursor-not-allowed disabled:opacity-50',
@@ -314,7 +323,9 @@ function AsyncPartySelect({
             {loading ? (
               <div className="p-3 text-center text-xs text-gray-500">Searching...</div>
             ) : loadError ? (
-              <div className="p-3 text-center text-xs text-red-600">Could not load options. Close and reopen to retry.</div>
+              <div className="p-3 text-center text-xs text-red-600">
+                Could not load options. Close and reopen to retry.
+              </div>
             ) : options.length === 0 ? (
               <div className="p-3 text-center text-xs text-gray-400">No matching results found</div>
             ) : (
@@ -382,11 +393,11 @@ function PartyFields({
 }: {
   formCtx: BillFormContext
   ownerName:
-  | 'exporterId'
-  | 'consigneeId'
-  | `invoices.${number}.buyerId`
-  | `invoices.${number}.thirdPartyId`
-  | `invoices.${number}.items.${number}.itemThirdPartyId`
+    | 'exporterId'
+    | 'consigneeId'
+    | `invoices.${number}.buyerId`
+    | `invoices.${number}.thirdPartyId`
+    | `invoices.${number}.items.${number}.itemThirdPartyId`
   branchName: BranchPath
   label: string
   kind: 'exporter' | 'business'
@@ -1173,7 +1184,8 @@ function BillEditor({ bill }: { bill?: SavedBill }) {
     setMarksAndNumbersOptions([])
     setMarksAndNumbersLoading(Boolean(exporterId))
     if (exporterId) {
-      void referenceDataService.getMarksAndNumbers(exporterId)
+      void referenceDataService
+        .getMarksAndNumbers(exporterId)
         .then((options) => {
           if (cancelled) return
           setMarksAndNumbersOptions(options)
@@ -1293,12 +1305,13 @@ function BillEditor({ bill }: { bill?: SavedBill }) {
           return (
             <div
               key={step.id}
-              className={`rounded-lg border p-3 ${isShippingBill
-                ? 'border-primary-300 bg-primary-50'
-                : 'border-gray-200 bg-gray-50'
-                }`}>
+              className={`rounded-lg border p-3 ${
+                isShippingBill ? 'border-primary-300 bg-primary-50' : 'border-gray-200 bg-gray-50'
+              }`}>
               <div className="flex items-center gap-2 text-sm font-medium">
-                <span className="flex size-6 items-center justify-center rounded-full bg-white text-xs">{index + 1}</span>
+                <span className="flex size-6 items-center justify-center rounded-full bg-white text-xs">
+                  {index + 1}
+                </span>
                 {step.title}
               </div>
               <p className="ml-8 text-xs text-gray-500">{step.description}</p>
@@ -1581,8 +1594,9 @@ function BillEditor({ bill }: { bill?: SavedBill }) {
                             label="Package to"
                             type="number"
                             {...register(`packingRanges.${index}.packingNumberTo`, {
-              validate: (value, form) => packingRangeError(form.packingRanges[index]?.packingNumberFrom, value)
-            })}
+                              validate: (value, form) =>
+                                packingRangeError(form.packingRanges[index]?.packingNumberFrom, value)
+                            })}
                           />
                           <Input label="Packing code" {...register(`packingRanges.${index}.packingCode`)} />
                         </div>
@@ -1722,9 +1736,7 @@ function BillEditor({ bill }: { bill?: SavedBill }) {
                 Save & Next
               </Button>
             ) : (
-              <Button type="submit">
-                Save changes
-              </Button>
+              <Button type="submit">Save changes</Button>
             )}
           </div>
         </div>
@@ -1756,7 +1768,12 @@ function BillEditor({ bill }: { bill?: SavedBill }) {
 
 export default function ShippingBillPage() {
   const { id } = useParams<{ id?: string }>()
-  const { data: bill, isLoading, error, refetch } = useQuery({
+  const {
+    data: bill,
+    isLoading,
+    error,
+    refetch
+  } = useQuery({
     queryKey: ['bill', id],
     queryFn: () => billService.getById(Number(id)),
     enabled: Boolean(id),

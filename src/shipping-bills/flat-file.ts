@@ -1,6 +1,8 @@
 import { SavedBill } from './model'
 
-const clean = (value?: string) => (value ?? '').replace(/[\^\r\n]+/g, ' ')
+function clean(value?: string) {
+  return (value ?? '').replace(/[\^\r\n]+/g, ' ')
+}
 
 // Builds the .sb flat file text from a saved bill. Pure function: easy to unit test.
 export function generateFlatFileContent(bill: SavedBill): string {

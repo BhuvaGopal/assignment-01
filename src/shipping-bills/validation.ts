@@ -1,7 +1,9 @@
 import { portCountry } from './model'
 
 // Pure rule functions: return an error message, or undefined when the value is fine.
-const toNumber = (value?: string) => (value == null || String(value).trim() === '' ? undefined : Number(value))
+function toNumber(value?: string) {
+  return value == null || value.trim() === '' ? undefined : Number(value)
+}
 
 export function netWeightError(net?: string, gross?: string): string | undefined {
   const n = toNumber(net)

@@ -2,7 +2,9 @@ import { getDemoData, saveBranch, saveBusiness, saveExporter } from '../demo-sto
 import { Branch, Business, Exporter } from '../model'
 import { ServiceError, simulate } from './latency'
 
-const norm = (value: string) => value.trim().toLowerCase()
+function norm(value: string) {
+  return value.trim().toLowerCase()
+}
 
 function filterBranches(branches: Branch[], query: string) {
   const q = norm(query)

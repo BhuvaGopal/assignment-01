@@ -54,7 +54,9 @@ export default function ListDashboard() {
 
   const bills = data ?? []
   const filtered = bills.filter((bill) => matchesSearch(bill, search))
-  const countDistinct = (pick: (bill: SavedBill) => string | undefined) => new Set(bills.map(pick).filter(Boolean)).size
+  function countDistinct(pick: (bill: SavedBill) => string | undefined) {
+    return new Set(bills.map(pick).filter(Boolean)).size
+  }
 
   function handleDownload(bill: SavedBill) {
     try {

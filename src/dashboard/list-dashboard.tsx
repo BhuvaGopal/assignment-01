@@ -61,7 +61,7 @@ export default function ListDashboard() {
   function handleDownload(bill: SavedBill) {
     try {
       downloadFlatFile(bill)
-      toast.success(`Flat file generated for #${bill.values.jobNumber || bill.id}`)
+      toast.success(`Flat file generated for #${bill.values.jobNumber ?? bill.id}`)
     } catch {
       toast.error('Failed to generate flat file')
     }
@@ -139,8 +139,8 @@ export default function ListDashboard() {
                         <span className="block text-xs font-normal text-gray-500">{bill.values.jobDate}</span>
                       </td>
                       <td>
-                        {bill.values.exporterName || '—'}
-                        <span className="block text-xs text-gray-500">to {bill.values.consigneeName || '—'}</span>
+                        {bill.values.exporterName ?? '—'}
+                        <span className="block text-xs text-gray-500">to {bill.values.consigneeName ?? '—'}</span>
                       </td>
                       <td>
                         {bill.values.loadingPort || '—'} → {bill.values.finalDestinationPort || '—'}

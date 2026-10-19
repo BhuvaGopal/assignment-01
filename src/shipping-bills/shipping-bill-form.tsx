@@ -1,4 +1,3 @@
-import { documentCodes } from '@/data/e-sanchit-codes'
 import { quantityCodes } from '@/data/quantity-code'
 import schemeCodes from '@/data/scheme-codes'
 import { stateOptions } from '@/data/states'
@@ -296,7 +295,7 @@ function AsyncPartySelect({
         <PopoverTrigger
           className={clsx(
             'outline-focus-select group flex w-full cursor-pointer items-center justify-between rounded border border-gray-200 pr-2 hover:border-gray-300 disabled:cursor-not-allowed disabled:opacity-50',
-            clsx(className || 'bg-white', disabled ? 'cursor-not-allowed opacity-50' : '')
+            clsx(className ?? 'bg-white', disabled ? 'cursor-not-allowed opacity-50' : '')
           )}
           disabled={disabled}>
           <div className="flex items-center p-2 text-sm">
@@ -509,8 +508,8 @@ function PartyFields({
             if (!ownerId) return ''
             const branches =
               kind === 'exporter'
-                ? await partyService.searchExporterBranches(String(ownerId), '')
-                : await partyService.searchBusinessBranches(String(ownerId), '')
+                ? await partyService.searchExporterBranches(ownerId, '')
+                : await partyService.searchBusinessBranches(ownerId, '')
             const branch = branches.find((b) => String(b.id) === id)
             return branch ? `${branch.branchName} · ${branch.city}` : ''
           }}
@@ -868,10 +867,7 @@ function InvoiceEditor({
                     {(() => {
                       const selectedScheme = schemeCodes.find((s) => s.value === item.schemeCode)
                       const showDrawback =
-                        selectedScheme &&
-                        (selectedScheme.drawback ||
-                          selectedScheme.RODTEP ||
-                          selectedScheme.ROSCTL)
+                        selectedScheme && (selectedScheme.drawback || selectedScheme.RODTEP || selectedScheme.ROSCTL)
                       return showDrawback ? (
                         <>
                           <div className="w-36">
@@ -1017,25 +1013,7 @@ function DocumentItem({ formCtx, index, onRemove }: { formCtx: BillFormContext; 
   const { register, watch } = formCtx.hooks
   const documentValues = watch(`documents.${index}`)
 
-  const hasCustomValues = Boolean(
-    documentValues?.placeOfIssue ||
-    documentValues?.invoiceSerialNumber ||
-    documentValues?.itemSerialNumber ||
-    documentValues?.issuingPartyCode ||
-    documentValues?.issuingPartyName ||
-    documentValues?.issuingPartyAddress1 ||
-    documentValues?.issuingPartyAddress2 ||
-    documentValues?.issuingPartyCity ||
-    documentValues?.issuingPartyPin ||
-    documentValues?.beneficiaryPartyCode ||
-    documentValues?.beneficiaryPartyName ||
-    documentValues?.beneficiaryPartyAddress1 ||
-    documentValues?.beneficiaryPartyAddress2 ||
-    documentValues?.beneficiaryPartyCity ||
-    documentValues?.beneficiaryPartyPin ||
-    documentValues?.fileType ||
-    documentValues?.icegateId
-  )
+  const hasCustomValues = [documentValues.placeOfIssue, documentValues.invoiceSerialNumber, documentValues.itemSerialNumber, documentValues.issuingPartyCode, documentValues.issuingPartyName, documentValues.issuingPartyAddress1, documentValues.issuingPartyAddress2, documentValues.issuingPartyCity, documentValues.issuingPartyPin, documentValues.beneficiaryPartyCode, documentValues.beneficiaryPartyName, documentValues.beneficiaryPartyAddress1, documentValues.beneficiaryPartyAddress2, documentValues.beneficiaryPartyCity, documentValues.beneficiaryPartyPin, documentValues.fileType, documentValues.icegateId].some(Boolean)
 
   const [showCustomDetails, setShowCustomDetails] = useState(hasCustomValues)
 
@@ -1053,20 +1031,8 @@ function DocumentItem({ formCtx, index, onRemove }: { formCtx: BillFormContext; 
           <AsyncPartySelect
             name={`documents.${index}.documentTypeCode`}
             placeholder="Search document type..."
-            fetchOptions={async (query) => {
-              const q = query.toLowerCase().trim()
-              const filtered = documentCodes.filter(
-                (doc) => doc.label.toLowerCase().includes(q) || doc.value.toLowerCase().includes(q)
-              )
-              return filtered.map((doc) => ({
-                value: doc.value,
-                label: doc.label
-              }))
-            }}
-            getInitialLabel={async (val) => {
-              const found = documentCodes.find((doc) => doc.value === val || doc.label === val)
-              return found ? found.label : val
-            }}
+            fetchOptions={(query) => referenceDataService.searchDocumentTypes(query)}
+            getInitialLabel={(val) => referenceDataService.getDocumentTypeLabel(val)}
           />
         </div>
         <Input label="Image reference number" {...register(`documents.${index}.imageReferenceNumber`)} />
@@ -1087,17 +1053,8 @@ function DocumentItem({ formCtx, index, onRemove }: { formCtx: BillFormContext; 
               name={`documents.${index}.fileType`}
               placeholder="Search file type..."
               className="bg-transparent"
-              fetchOptions={async (query) => {
-                const q = query.toLowerCase().trim()
-                const options = [{ value: 'pdf', label: 'PDF' }]
-                return options.filter(
-                  (doc) => doc.label.toLowerCase().includes(q) || doc.value.toLowerCase().includes(q)
-                )
-              }}
-              getInitialLabel={async (val) => {
-                const found = [{ value: 'pdf', label: 'PDF' }].find((doc) => doc.value === val || doc.label === val)
-                return found ? found.label : val
-              }}
+              fetchOptions={(query) => referenceDataService.searchFileTypes(query)}
+              getInitialLabel={(val) => referenceDataService.getFileTypeLabel(val)}
             />
           </div>
           <Input label="Place of issue" {...register(`documents.${index}.placeOfIssue`)} />

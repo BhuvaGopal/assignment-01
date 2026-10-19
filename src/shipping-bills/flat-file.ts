@@ -19,20 +19,20 @@ export function generateFlatFileContent(bill: SavedBill): string {
     [
       'F',
       1000,
-      v.jobNumber || bill.id,
+      v.jobNumber ?? bill.id,
       v.jobDate || '',
       v.exporterId || '',
       v.exporterBranchId || '',
       v.consigneeId || '',
       v.loadingPort || '',
       v.finalDestinationPort || '',
-      v.dischargePort || v.finalDestinationPort || '',
-      v.sealType || '',
+      v.dischargePort ?? v.finalDestinationPort || '',
+      v.sealType ?? '',
       v.natureOfCargo || '',
-      v.grossWeight || '',
-      v.netWeight || '',
+      v.grossWeight ?? '',
+      v.netWeight ?? '',
       v.measurementUnit || 'KGS',
-      v.totalPackages || '',
+      v.totalPackages ?? '',
       clean(v.marksAndNumbers)
     ]
       .join('^')
@@ -45,7 +45,7 @@ export function generateFlatFileContent(bill: SavedBill): string {
     v.invoices.forEach((inv, idx) => {
       const buyer = inv.buyerSameAsConsignee ? v.consigneeId : inv.buyerId
       lines.push(
-        `<R>${idx + 1}^${inv.invoiceNumber}^${inv.invoiceDate || ''}^${inv.currency || 'USD'}^${inv.contractType || '1'}^${buyer || ''}^${inv.freightAmount || 0}^${inv.insuranceAmount || 0}`
+        `<R>${idx + 1}^${inv.invoiceNumber}^${inv.invoiceDate || ''}^${inv.currency || 'USD'}^${inv.contractType || '1'}^${buyer || ''}^${inv.freightAmount ?? 0}^${inv.insuranceAmount ?? 0}`
       )
     })
 
@@ -55,7 +55,7 @@ export function generateFlatFileContent(bill: SavedBill): string {
       inv.items.forEach((item, itemIdx) => {
         const total = (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0)
         lines.push(
-          `<R>${invIdx + 1}^${itemIdx + 1}^${item.ritcCode || ''}^${clean(item.goodsDescription1)}^${item.quantity || ''}^${item.unitOfMeasurement || 'PCS'}^${item.unitPrice || ''}^${total.toFixed(2)}^${item.schemeCode || ''}`
+          `<R>${invIdx + 1}^${itemIdx + 1}^${item.ritcCode || ''}^${clean(item.goodsDescription1)}^${item.quantity || ''}^${item.unitOfMeasurement || 'PCS'}^${item.unitPrice || ''}^${total.toFixed(2)}^${item.schemeCode ?? ''}`
         )
       })
     })
@@ -65,7 +65,7 @@ export function generateFlatFileContent(bill: SavedBill): string {
     lines.push('<TABLE>PACKING')
     lines.push('<F>FROM_PKG^TO_PKG^PKG_CODE')
     v.packingRanges.forEach((pkg) => {
-      lines.push(`<R>${pkg.packingNumberFrom}^${pkg.packingNumberTo}^${pkg.packingCode || 'CTN'}`)
+      lines.push(`<R>${pkg.packingNumberFrom}^${pkg.packingNumberTo}^${pkg.packingCode ?? 'CTN'}`)
     })
   }
 
@@ -79,7 +79,7 @@ export function downloadFlatFile(bill: SavedBill) {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.download = `shipping_bill_${bill.values.jobNumber || bill.id}.sb`
+  link.download = `shipping_bill_${bill.values.jobNumber ?? bill.id}.sb`
   document.body.appendChild(link)
   link.click()
   link.remove()

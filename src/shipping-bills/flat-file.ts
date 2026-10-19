@@ -26,7 +26,7 @@ export function generateFlatFileContent(bill: SavedBill): string {
       v.consigneeId || '',
       v.loadingPort || '',
       v.finalDestinationPort || '',
-      v.dischargePort ?? v.finalDestinationPort || '',
+      (v.dischargePort ?? v.finalDestinationPort) || '',
       v.sealType ?? '',
       v.natureOfCargo || '',
       v.grossWeight ?? '',

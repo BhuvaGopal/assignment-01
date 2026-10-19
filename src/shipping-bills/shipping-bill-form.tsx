@@ -1013,7 +1013,25 @@ function DocumentItem({ formCtx, index, onRemove }: { formCtx: BillFormContext; 
   const { register, watch } = formCtx.hooks
   const documentValues = watch(`documents.${index}`)
 
-  const hasCustomValues = [documentValues.placeOfIssue, documentValues.invoiceSerialNumber, documentValues.itemSerialNumber, documentValues.issuingPartyCode, documentValues.issuingPartyName, documentValues.issuingPartyAddress1, documentValues.issuingPartyAddress2, documentValues.issuingPartyCity, documentValues.issuingPartyPin, documentValues.beneficiaryPartyCode, documentValues.beneficiaryPartyName, documentValues.beneficiaryPartyAddress1, documentValues.beneficiaryPartyAddress2, documentValues.beneficiaryPartyCity, documentValues.beneficiaryPartyPin, documentValues.fileType, documentValues.icegateId].some(Boolean)
+  const hasCustomValues = [
+    documentValues.placeOfIssue,
+    documentValues.invoiceSerialNumber,
+    documentValues.itemSerialNumber,
+    documentValues.issuingPartyCode,
+    documentValues.issuingPartyName,
+    documentValues.issuingPartyAddress1,
+    documentValues.issuingPartyAddress2,
+    documentValues.issuingPartyCity,
+    documentValues.issuingPartyPin,
+    documentValues.beneficiaryPartyCode,
+    documentValues.beneficiaryPartyName,
+    documentValues.beneficiaryPartyAddress1,
+    documentValues.beneficiaryPartyAddress2,
+    documentValues.beneficiaryPartyCity,
+    documentValues.beneficiaryPartyPin,
+    documentValues.fileType,
+    documentValues.icegateId
+  ].some(Boolean)
 
   const [showCustomDetails, setShowCustomDetails] = useState(hasCustomValues)
 

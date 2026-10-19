@@ -537,7 +537,7 @@ function InvoiceEditor({
   canRemove: boolean
 }) {
   const { register, control } = formCtx.hooks
-$1const {
+  const {
     fields: items,
     append: addItem,
     remove: removeItem

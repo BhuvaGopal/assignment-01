@@ -1,12 +1,20 @@
 import { useState } from 'react'
 import { Button } from 'ui/basic/button'
 import { Input } from 'ui/inputs/input'
-import { referenceDataService } from './services'
-import { BillFormContext, dateType } from './form-types'
-import { Advanced } from './form-primitives'
 import { AsyncPartySelect } from './async-select'
+import { Advanced } from './form-primitives'
+import { BillFormContext, dateType } from './form-types'
+import { referenceDataService } from './services'
 
-export function DocumentItem({ formCtx, index, onRemove }: { formCtx: BillFormContext; index: number; onRemove: () => void }) {
+export function DocumentItem({
+  formCtx,
+  index,
+  onRemove
+}: {
+  formCtx: BillFormContext
+  index: number
+  onRemove: () => void
+}) {
   const { register, watch } = formCtx.hooks
   const documentValues = watch(`documents.${index}`)
 

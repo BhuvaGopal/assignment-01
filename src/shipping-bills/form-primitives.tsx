@@ -1,5 +1,3 @@
-
-
 export function SectionHeading({ title, description }: { title: string; description?: string }) {
   return (
     <div className="mb-4">

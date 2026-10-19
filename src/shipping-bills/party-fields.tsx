@@ -1,9 +1,8 @@
 import { useQuery } from 'core/react-query'
 import { useEffect } from 'react'
-import { Branch } from './model'
-import { partyService } from './services'
-import { BillFormContext, BranchPath } from './form-types'
 import { AsyncPartySelect } from './async-select'
+import { BillFormContext, BranchPath } from './form-types'
+import { partyService } from './services'
 
 export function PartyFields({
   formCtx,

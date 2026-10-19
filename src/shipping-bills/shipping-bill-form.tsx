@@ -22,6 +22,7 @@ import { Popover, PopoverContent, PopoverTrigger } from 'ui/interactive/popover'
 import { PopoverContext } from 'ui/interactive/popover-context'
 import { Tabs, TabsList, TabsTrigger } from 'ui/interactive/tabs'
 import { clsx, getContext } from 'ui/utils'
+import { currencyOptions, InvoiceCharges } from './invoice-charges'
 import { MarksAndNumbersOption } from './marks-and-numbers-source'
 import {
   BillInvoiceForm,
@@ -49,7 +50,6 @@ import {
   packingRangeError,
   rbiWaiverDateError
 } from './validation'
-import { currencyOptions, InvoiceCharges } from './invoice-charges'
 import { workflowSteps } from './workflow'
 
 const positive = s.string().refine((value) => (Number(value) > 0 ? undefined : 'Enter a number above zero'))

@@ -1,9 +1,8 @@
 import { useForm } from 'core/form'
 import { Input } from 'ui/inputs/input'
 import { Select } from 'ui/inputs/select'
+import { currencyOptions } from './currency-options'
 import { ShippingBillFormValues } from './model'
-
-export const currencyOptions = ['USD', 'EUR', 'INR', 'AED', 'GBP', 'SGD'].map((value) => ({ value, label: value }))
 
 type BillFormContext = ReturnType<typeof useForm<ShippingBillFormValues>>
 type ChargeKey = 'freight' | 'insurance' | 'commission' | 'discount' | 'otherDeductions'

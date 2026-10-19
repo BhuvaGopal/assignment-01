@@ -22,7 +22,8 @@ import { Popover, PopoverContent, PopoverTrigger } from 'ui/interactive/popover'
 import { PopoverContext } from 'ui/interactive/popover-context'
 import { Tabs, TabsList, TabsTrigger } from 'ui/interactive/tabs'
 import { clsx, getContext } from 'ui/utils'
-import { currencyOptions, InvoiceCharges } from './invoice-charges'
+import { currencyOptions } from './currency-options'
+import { InvoiceCharges } from './invoice-charges'
 import { MarksAndNumbersOption } from './marks-and-numbers-source'
 import {
   BillInvoiceForm,

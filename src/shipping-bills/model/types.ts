@@ -1,4 +1,3 @@
-import type { lineTotal, invoiceTotal } from './calculations'
 import type { toShippingBillPayload } from './payload'
 
 export interface Branch {

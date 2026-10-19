@@ -1,5 +1,5 @@
+import { invoiceTotal, lineTotal, portCountry } from './calculations'
 import { ShippingBillFormValues } from './types'
-import { portCountry, lineTotal, invoiceTotal } from './calculations'
 
 function optionalNumber(value?: any) {
   if (typeof value === 'number') return value

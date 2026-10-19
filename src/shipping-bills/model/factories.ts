@@ -1,5 +1,4 @@
-import { BillItemForm, BillInvoiceForm, SupportingDocForm, ShippingBillFormValues } from './types'
-import { lineTotal } from './calculations'
+import { BillInvoiceForm, BillItemForm, ShippingBillFormValues, SupportingDocForm } from './types'
 
 export function emptyItem(): BillItemForm {
   return {

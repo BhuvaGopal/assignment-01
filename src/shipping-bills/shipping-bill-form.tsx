@@ -49,6 +49,7 @@ import {
   packingRangeError,
   rbiWaiverDateError
 } from './validation'
+import { currencyOptions, InvoiceCharges } from './invoice-charges'
 import { workflowSteps } from './workflow'
 
 const positive = s.string().refine((value) => (Number(value) > 0 ? undefined : 'Enter a number above zero'))
@@ -137,7 +138,6 @@ interface QuickBranch {
 
 const portOptions = ports.map((port) => ({ value: port.code, label: `${port.name} · ${port.code}` }))
 
-const currencyOptions = ['USD', 'EUR', 'INR', 'AED', 'GBP', 'SGD'].map((value) => ({ value, label: value }))
 const dateType = 'date' as 'text'
 
 function SectionHeading({ title, description }: { title: string; description?: string }) {
@@ -536,9 +536,8 @@ function InvoiceEditor({
   onRemove: () => void
   canRemove: boolean
 }) {
-  const { register, control, watch } = formCtx.hooks
-  const invoiceValues = watch(`invoices.${index}`)
-  const {
+  const { register, control } = formCtx.hooks
+$1const {
     fields: items,
     append: addItem,
     remove: removeItem
@@ -604,163 +603,7 @@ function InvoiceEditor({
         )}
 
         <div className="space-y-4">
-          <div className="divide-y divide-gray-100 rounded-lg border border-gray-200">
-            <div className="grid grid-cols-1 divide-y divide-gray-100 lg:grid-cols-2 lg:divide-x lg:divide-y-0">
-              <div className="p-2">
-                <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
-                  <span className="w-28 shrink-0 font-medium text-gray-900">Freight</span>
-                  <div className="flex items-center gap-1">
-                    <Input
-                      type="number"
-                      {...register(`invoices.${index}.freightRate`)}
-                      className="text-right"
-                      disabled={invoiceValues.freightAmount !== '' && invoiceValues.freightAmount != null}
-                      placeholder="Rate"
-                    />
-                    <span className="text-xs text-gray-500">%</span>
-                  </div>
-                  <Input
-                    type="number"
-                    {...register(`invoices.${index}.freightAmount`)}
-                    className="py-1 text-right"
-                    disabled={invoiceValues.freightRate !== '' && invoiceValues.freightRate != null}
-                    placeholder="Amount"
-                  />
-                  <Select<ShippingBillFormValues>
-                    name={`invoices.${index}.freightCurrency`}
-                    options={currencyOptions}
-                    placeholder={invoice.currency}
-                  />
-                </div>
-              </div>
-              <div className="p-2">
-                <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
-                  <span className="w-28 shrink-0 font-medium text-gray-900">Insurance</span>
-                  <div className="flex items-center gap-1">
-                    <Input
-                      type="number"
-                      {...register(`invoices.${index}.insuranceRate`)}
-                      className="text-right"
-                      disabled={invoiceValues.insuranceAmount !== '' && invoiceValues.insuranceAmount != null}
-                      placeholder="Rate"
-                    />
-                    <span className="text-xs text-gray-500">%</span>
-                  </div>
-                  <Input
-                    type="number"
-                    {...register(`invoices.${index}.insuranceAmount`)}
-                    className="py-1 text-right"
-                    disabled={invoiceValues.insuranceRate !== '' && invoiceValues.insuranceRate != null}
-                    placeholder="Amount"
-                  />
-                  <Select<ShippingBillFormValues>
-                    name={`invoices.${index}.insuranceCurrency`}
-                    options={currencyOptions}
-                    placeholder={invoice.currency}
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 divide-y divide-gray-100 lg:grid-cols-2 lg:divide-x lg:divide-y-0">
-              <div className="p-2">
-                <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
-                  <span className="w-28 shrink-0 font-medium text-gray-900">Commission</span>
-                  <div className="flex items-center gap-1">
-                    <Input
-                      type="number"
-                      {...register(`invoices.${index}.commissionRate`)}
-                      className="text-right"
-                      disabled={invoiceValues.commissionAmount !== '' && invoiceValues.commissionAmount != null}
-                      placeholder="Rate"
-                    />
-                    <span className="text-xs text-gray-500">%</span>
-                  </div>
-                  <Input
-                    type="number"
-                    {...register(`invoices.${index}.commissionAmount`)}
-                    className="py-1 text-right"
-                    disabled={invoiceValues.commissionRate !== '' && invoiceValues.commissionRate != null}
-                    placeholder="Amount"
-                  />
-                  <Select<ShippingBillFormValues>
-                    name={`invoices.${index}.commissionCurrency`}
-                    options={currencyOptions}
-                    placeholder={invoice.currency}
-                  />
-                </div>
-              </div>
-              <div className="p-2">
-                <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
-                  <span className="w-28 shrink-0 font-medium text-gray-900">Discount</span>
-                  <div className="flex items-center gap-1">
-                    <Input
-                      type="number"
-                      {...register(`invoices.${index}.discountRate`)}
-                      className="text-right"
-                      disabled={invoiceValues.discountAmount !== '' && invoiceValues.discountAmount != null}
-                      placeholder="Rate"
-                    />
-                    <span className="text-xs text-gray-500">%</span>
-                  </div>
-                  <Input
-                    type="number"
-                    {...register(`invoices.${index}.discountAmount`)}
-                    className="py-1 text-right"
-                    disabled={invoiceValues.discountRate !== '' && invoiceValues.discountRate != null}
-                    placeholder="Amount"
-                  />
-                  <Select<ShippingBillFormValues>
-                    name={`invoices.${index}.discountCurrency`}
-                    options={currencyOptions}
-                    placeholder={invoice.currency}
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 divide-y divide-gray-100 lg:grid-cols-2 lg:divide-x lg:divide-y-0">
-              <div className="p-2">
-                <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
-                  <span className="w-28 shrink-0 font-medium text-gray-900">Other Deductions</span>
-                  <div className="flex items-center gap-1">
-                    <Input
-                      type="number"
-                      {...register(`invoices.${index}.otherDeductionsRate`)}
-                      className="text-right"
-                      disabled={
-                        invoiceValues.otherDeductionsAmount !== '' && invoiceValues.otherDeductionsAmount != null
-                      }
-                      placeholder="Rate"
-                    />
-                    <span className="text-xs text-gray-500">%</span>
-                  </div>
-                  <Input
-                    type="number"
-                    {...register(`invoices.${index}.otherDeductionsAmount`)}
-                    className="py-1 text-right"
-                    disabled={invoiceValues.otherDeductionsRate !== '' && invoiceValues.otherDeductionsRate != null}
-                    placeholder="Amount"
-                  />
-                  <Select<ShippingBillFormValues>
-                    name={`invoices.${index}.otherDeductionsCurrency`}
-                    options={currencyOptions}
-                    placeholder={invoice.currency}
-                  />
-                </div>
-              </div>
-              <div className="p-2">
-                <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
-                  <span className="w-28 shrink-0 font-medium text-gray-900">Packing Charges</span>
-                  <Input
-                    type="number"
-                    {...register(`invoices.${index}.packingCharges`)}
-                    className="py-1 text-right"
-                    placeholder="Amount"
-                  />
-                  <span className="w-14 text-sm text-gray-500">—</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          <InvoiceCharges formCtx={formCtx} index={index} currency={invoice.currency} />
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Select<ShippingBillFormValues>
